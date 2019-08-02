@@ -1,0 +1,82 @@
+	<!DOCTYPE HTML>
+	<html>
+		<head>
+			<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1">
+			<title>Nationality</title>
+
+			<style type="text/css">
+
+			</style>
+		</head>
+		<body>
+	<script src="../../code/highcharts.js"></script>
+	<script src="jquery.min.js"></script>
+	<script src="../../code/modules/exporting.js"></script>
+	<script src="../../code/modules/export-data.js"></script>
+
+	<div id="container" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+			<script type="text/javascript">
+	var arrayList = new Array ();
+	$.getJSON('http://localhost:3000/driverandnation').done(function(data) {
+			//	console.log(Object.keys(data.name).length);
+				var x = new Array(Object.keys(data.name).length);
+				for (var i = 0; i < x.length; i++) {
+					x[i] = new Array(Object.keys(data).length);
+				}
+				var total = 0;
+				for (var i = 0; i < x.length; i++) { 
+						total += Number(String(data.count[i]).trim());
+					}
+
+	function chartObj(mName,x) {
+	    this.name = mName;
+	    this.y=x;
+	}
+				for (var i = 0; i < x.length; i++) { 
+						x[i][0] = (String(data.name[i]).trim());
+						x[i][1] = Number(String(data.count[i]).trim());
+						  var l = new chartObj(x[i][0],x[i][1]);
+						  arrayList.push(l);
+					}
+
+	console.log(arrayList);
+	console.log(JSON.stringify(arrayList));
+	var char = new Highcharts.chart('container', {
+	    chart: {
+	        plotBackgroundColor: null,
+	        plotBorderWidth: null,
+	        plotShadow: false,
+	        type: 'pie'
+	    },
+	    title: {
+	        text: 'Nationality of drivers in Airport 2018'
+	    },
+	    tooltip: {
+	        pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+	    },
+	    plotOptions: {
+	        pie: {
+	            allowPointSelect: true,
+	            cursor: 'pointer',
+	            dataLabels: {
+	                enabled: true,
+	                format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+	                style: {
+	                    color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+	                }
+	            }
+	        }
+	    },
+	    series: [{
+	        name: 'Nationality',
+	        colorByPoint: true,
+	        data: arrayList
+	    }]
+	});
+
+				});
+
+			</script>
+		</body>
+	</html>

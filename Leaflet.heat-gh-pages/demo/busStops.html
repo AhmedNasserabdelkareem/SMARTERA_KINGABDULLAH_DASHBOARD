@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Airport heatmap</title>
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+	<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.5.1/nouislider.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.5.1/nouislider.min.js"></script>
+	<style>
+		#map,html,body { width: 1000px; height: 800px; }
+		body { font: 16px/1.4 "Helvetica Neue", Arial, sans-serif; }
+		.ghbtns { position: relative; top: 4px; margin-left: 5px; }
+		a { color: #0077ff; }
+	</style>
+</head>
+<body>
+
+<!--	<p>
+		demo of <a href="https://github.com/Leaflet/Leaflet.heat"></a> jeddah airport
+    <iframe class="ghbtns" src="http://ghbtns.com/github-btn.html?user=Leaflet&amp;repo=Leaflet.heat&amp;type=watch&amp;count=true"
+  allowtransparency="true" frameborder="0" scrolling="0" width="90" height="20"></iframe>
+
+</p> --> 
+
+<div id="map"></div>
+
+<!-- <script src="../node_modules/simpleheat/simpleheat.js"></script>
+	<script src="../src/HeatLayer.js"></script> -->
+
+	<script src="../dist/leaflet-heat.js"></script>
+	<script src="jquery.min.js"></script>
+
+	<script src="http://leaflet.github.io/Leaflet.markercluster/example/realworld.10000.js"></script>
+	<script>
+
+		var map = L.map('map').setView([21.6747,39.1466], 12);
+
+		var tiles = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+		}).addTo(map);
+
+	</script>
+
+	<div id="slider" style="top: 0px; right: 1px; margin: 10px 25px;"></div>
+
+	    <div id= "comboBox">
+         <select id= "organization" onchange="updateContent();"  style="margin-left:1200px;margin-bottom: 500px">
+    </select> 
+    </div>
+	<script type="text/javascript">
+		var heatData = []
+		var idArr = [];
+		var tsArr = [];
+		var checkcombo = true;
+		var checkslider  =true;
+		var heatmap = null;
+		var current_data;
+		var current_id;
+		var current_ts;
+                $.getJSON('http://localhost:3000/organization').done(function(data) {
+                	                var idArray = new Array ();
+                 //console.log(Object.keys(data.name).length);
+                    var x = new Array(Object.keys(data.organ).length);
+                    for (var i = 0; i < x.length; i++) {
+                        x[i] = new Array(Object.keys(data).length);
+                    }
+
+        function chartObj(mName,mID) {
+            this.name = mName;
+            this.id = mID;
+        }
+                    for (var i = 0; i < x.length; i++) { 
+                            x[i][0] = (String(data.organ[i]).trim());
+                            x[i][1] = Number(String(data.id[i]).trim());
+                              var l = new chartObj(x[i][0],x[i][1]);
+                              console.log(l);
+                              idArray.push(l);
+                        }                 
+    for(var k=0;k<x.length;k++){
+       var opt = document.createElement("option");
+       opt.value= x[k][1];
+       opt.innerHTML = x[k][0];
+     //  console.log(opt.value+ "   " + opt.innerHTML);
+       document.getElementById("organization").appendChild(opt);
+    }
+}).then((response)=>{
+	console.log("first then");
+ $.getJSON('http://localhost:3000/busStops').done(function(data) {
+		//	console.log(Object.keys(data.lat).length);
+			var x = new Array(Object.keys(data.lat).length);
+			for (var i = 0; i < x.length; i++) {
+				x[i] = new Array(Object.keys(data).length);
+			}
+		//console.log(x.length);
+			for (var i = 0; i < x.length; i++) { 
+				try {
+					x[i][0] = Number(String(data.lat[i]).trim());
+					x[i][1] = Number(String(data.long[i]).trim());
+					tsArr[i]=Number(String(data.ts[i]).trim());
+					idArr[i]=Number(String(data.id[i]).trim());
+					var latlng = new  L.LatLng(x[i][0],x[i][1]);
+					//console.log(latlng);
+					heatData.push(latlng);
+				} catch(err) {
+					console.log(err);
+		//			console.log(x[i][0] + " " + data.lat[i] + i +x.length)
+				//	continue;
+				}}
+				current_data = heatData;
+				current_ts = tsArr;
+				current_id = idArr;
+}).then((response)=>{
+	checkcombo = false;
+
+}).catch(()=>{
+
+});
+
+});
+
+var slidervar = document.getElementById('slider');
+noUiSlider.create(slidervar, {
+    connect: false,
+    start: [0],
+    range: {
+        min: 0,
+        max: 23
+    },
+    step: 1,    
+    pips: {
+        mode: 'steps',
+        stepped: true,
+        density: 4
+    }
+});
+      
+slidervar.noUiSlider.on('update', function( values, handle ) {
+    //handle = 0 if min-slider is moved and handle = 1 if max slider is moved
+    if(!checkslider){
+    if (handle==0){
+    	var value = values[0];
+    	var temp = [];
+for (var i=0;i < current_data.length;i++) {
+ 	//console.log(idArr[i]+ "  " + id);	
+ 	first = Number(String(current_ts[i]).trim());
+	second	= Number(String(value).trim());
+	//console.log(first+" "+ second);
+	if(first === second){
+		//console.log("ni");
+		temp.push(current_data[i]);
+	}
+}
+
+if(heatmap != null){
+	console.log("third");
+	map.removeLayer(heatmap);
+}
+heatmap = L.heatLayer(temp,
+ {radius: 13,
+       // blur: 15, 
+        maxZoom: 10,
+        max: 4.0,
+
+        gradient: {
+           0.0: 'turquoise',
+            0.3: 'springgreen',
+            0.5:'yellow',
+            0.75:'orange',
+            0.9: 'darkorange',
+            1.0: 'red'
+        }
+			}).addTo(map);
+       // document.getElementById('input-number-min').value = values[0];
+       console.log(values[0]);
+    } else {
+//        document.getElementById('input-number-max').value =  values[1];
+       console.log(values[1]);
+    }
+}
+    	checkslider = false;
+//we will definitely do more here...wait
+})
+
+function updateContent (){
+		if(!checkcombo){
+	var e = document.getElementById("organization");
+    var id = e.options[e.selectedIndex].value;
+    var index = e.options[e.selectedIndex].innerHTML;
+    var temp = [];
+    var tempID = [];
+    var tempts = [];
+for (var i=0;i < heatData.length;i++) {
+ 	//console.log(idArr[i]+ "  " + id);	
+ 	first = Number(String(idArr[i]).trim());
+	second	= Number(String(id).trim());
+	if(first === second){
+		//console.log("ni");
+		temp.push(heatData[i]);
+		tempts.push(tsArr[i]);
+		tempID.push(idArr[i]);
+	}
+}
+current_data = temp;
+current_ts  = tempts;
+current_id = tempID;
+console.log(current_data.length);
+if(heatmap != null){
+	console.log("second");
+	map.removeLayer(heatmap);
+}
+heatmap = L.heatLayer(temp,
+ {radius: 13,
+       // blur: 15, 
+        maxZoom: 10,
+        max: 4.0,
+
+        gradient: {
+           0.0: 'turquoise',
+            0.3: 'springgreen',
+            0.5:'yellow',
+            0.75:'orange',
+            0.9: 'darkorange',
+            1.0: 'red'
+        }
+			}).addTo(map);
+    }
+}
+	</script>
+</body>
+</html>
+ <!-- gradient: {
+            0.0: 'lightcyan',
+            0.3: 'aqua',
+            0.5:'turquoise',
+            0.75:'darkturquoise',
+            0.9: 'cadetblue',
+            1.0: 'teal'
+        } -->
+
+        <!-- select lat, longitude,organization_id as id from busData join shifts on time(from_unixtime(busData.timestamp)) between shifts.from_time and shifts.to_time where busData.speed = 0;" -->
